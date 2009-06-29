@@ -19,6 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import subprocess
 import sys
+import os
+import time
 
 def execute(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -78,12 +80,26 @@ for line in output:
         (exitCode, stat) = execute(['p4', 'fstat', file])
         die(exitCode, output)
         depotFile = value('depotFile', stat)
+
+        # Depot date is not available when file is new
+        try:
+            depotDate = float(value('headTime', stat))
+        except TypeError:
+            depotDate = 0.0
+
         clientFile = value('clientFile', stat)
+
+        # Client date is not available when file has been deleted
+        try:
+            clientDate = os.stat(clientFile).st_mtime
+        except OSError:
+            clientDate = 0.0
+
         action = value('action', stat)
 
         print 'diff -Naur %s %s' % (depotFile, clientFile)
-        print '--- %s\tRevision %s' % (depotFile, line.split(' ')[0].split('#')[1])
-        print '+++ %s' % clientFile
+        print '--- %s\t%s' % (depotFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(depotDate)))
+        print '+++ %s\t%s' % (clientFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(clientDate)))
 
         if action == 'edit':
             (exitCode, diff) = execute(['p4', 'diff', '-du', file])
