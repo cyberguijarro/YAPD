@@ -1,0 +1,24 @@
+YAPD: Yet Another Perforce Diff
+http://github.com/cyberguijarro/YAPD/tree/master
+
+YAPD is a simple Python scripts that converts "p4 diff" command output to
+regular "unified diffs" or "patches", than can be later shared and applied
+in different workspaces with tools like "patch".
+
+INSTALLATION
+
+On UNIX-like operating systems, just copy "yapd.py" to any of the folders
+in your PATH environment and rename it as you like ("yapd" is my choice).
+
+On Windows, copy "yapd.bat" and "yapd.py" to any of the folders in your
+PATH environment and correct "yapd.bat" with the right path to "yapd.py".
+
+USAGE
+
+Invoking "yapd" with no parameters generates a diff for all "opened for 
+(edit|add|delete)" files, but changelist id's are accepted as well:
+
+$ yapd          # Diff for all changelists
+$ yapd default  # Diff for the default changelist
+$ yapd 3 4 28  # Diff for changelists 3, 4 and 28
+
