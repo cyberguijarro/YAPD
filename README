@@ -1,7 +1,7 @@
 YAPD: Yet Another Perforce Diff
 http://github.com/cyberguijarro/YAPD/tree/master
 
-YAPD is a simple Python scripts that converts "p4 diff" command output to
+YAPD is a simple Python script that converts "p4 diff" command output to
 regular "unified diffs" or "patches", than can be later shared and applied
 in different workspaces with tools like "patch".
 
@@ -20,5 +20,5 @@ Invoking "yapd" with no parameters generates a diff for all "opened for
 
 $ yapd          # Diff for all changelists
 $ yapd default  # Diff for the default changelist
-$ yapd 3 4 28  # Diff for changelists 3, 4 and 28
+$ yapd 3 4 28   # Diff for changelists 3, 4 and 28
 
