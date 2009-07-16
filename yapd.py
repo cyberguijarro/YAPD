@@ -62,6 +62,7 @@ def die(exitCode, error):
 
         exit()
 
+os.environ['P4DIFF'] = ''
 (exitCode, output) = execute(['p4', 'opened'])
 die(exitCode, output)
 changes = sys.argv[1:]
