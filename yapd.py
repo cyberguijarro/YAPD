@@ -21,6 +21,7 @@ import subprocess
 import sys
 import os
 import time
+import getopt
 
 def execute(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -62,76 +63,77 @@ def die(exitCode, error):
 
         exit()
 
+# Begin script code
+
 os.environ['P4DIFF'] = ''
-(exitCode, output) = execute(['p4', 'opened'])
+
+(options, files) = getopt.getopt(sys.argv[1:], 'c:')
+
+changes = []
+for option in options:
+    changes.append('-c')
+    changes.append(option[1])
+
+(exitCode, output) = execute(['p4', 'opened'] + changes + files)
 die(exitCode, output)
-changes = sys.argv[1:]
 
 for line in output:
     file = line.split("#")[0]
 
-    # Find out what change the file belongs to
-    if line.split("#")[1].split(' ')[3] == 'change':
-        change = line.split("#")[1].split(' ')[4]
-    else:
-        change = 'default'
+    (exitCode, stat) = execute(['p4', 'fstat', file])
+    die(exitCode, output)
+    depotFile = value('depotFile', stat)
 
-    if (len(changes) == 0) or (change in changes):
+    # Depot date is not available when file is new
+    try:
+        depotDate = float(value('headTime', stat))
+    except TypeError:
+        depotDate = 0.0
 
-        (exitCode, stat) = execute(['p4', 'fstat', file])
+    clientFile = value('clientFile', stat)
+
+    # Client date is not available when file has been deleted
+    try:
+        clientDate = os.stat(clientFile).st_mtime
+    except OSError:
+        clientDate = 0.0
+
+    action = value('action', stat)
+
+    print 'diff -Naur %s %s' % (depotFile, clientFile)
+    print '--- %s\t%s' % (depotFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(depotDate)))
+    print '+++ %s\t%s' % (clientFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(clientDate)))
+
+    if action == 'edit':
+        (exitCode, diff) = execute(['p4', 'diff', '-du', file])
         die(exitCode, output)
-        depotFile = value('depotFile', stat)
+            
+        for change in diff[1:]:
+            print change,
 
-        # Depot date is not available when file is new
-        try:
-            depotDate = float(value('headTime', stat))
-        except TypeError:
-            depotDate = 0.0
+    elif action == 'add':
+        fileStream = open(clientFile, 'r')           
+        contents = fileStream.readlines()
+        print '@@ -0,0 +1,%s @@' % len(contents)
 
-        clientFile = value('clientFile', stat)
+        for content in contents:
+            print '+%s' % content,
 
-        # Client date is not available when file has been deleted
-        try:
-            clientDate = os.stat(clientFile).st_mtime
-        except OSError:
-            clientDate = 0.0
+        fileStream.close()
+    elif action == 'delete':
+        # Temporarily recover file
+        (exitCode, dummy) = execute(['p4', 'revert', file])
+        die(exitCode, dummy)
+        fileStream = open(clientFile, 'r')
+        contents = fileStream.readlines()
+        print '@@ -1,%s +0,0 @@' % len(contents)
 
-        action = value('action', stat)
+        for content in contents:
+            print '-%s' % content,
 
-        print 'diff -Naur %s %s' % (depotFile, clientFile)
-        print '--- %s\t%s' % (depotFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(depotDate)))
-        print '+++ %s\t%s' % (clientFile, time.strftime("%Y-%m-%d %H:%M:%S.000000000 +0000", time.gmtime(clientDate)))
+        fileStream.close()
+        # Delete file again
+        execute(['p4', 'delete', '-c', change, file])
+        die(exitCode, dummy)
 
-        if action == 'edit':
-            (exitCode, diff) = execute(['p4', 'diff', '-du', file])
-            die(exitCode, output)
-                
-            for change in diff[1:]:
-                print change,
-
-        elif action == 'add':
-            fileStream = open(clientFile, 'r')           
-            contents = fileStream.readlines()
-            print '@@ -0,0 +1,%s @@' % len(contents)
-
-            for content in contents:
-                print '+%s' % content,
-
-            fileStream.close()
-        elif action == 'delete':
-            # Temporarily recover file
-            (exitCode, dummy) = execute(['p4', 'revert', file])
-            die(exitCode, dummy)
-            fileStream = open(clientFile, 'r')
-            contents = fileStream.readlines()
-            print '@@ -1,%s +0,0 @@' % len(contents)
-
-            for content in contents:
-                print '-%s' % content,
-
-            fileStream.close()
-            # Delete file again
-            execute(['p4', 'delete', '-c', change, file])
-            die(exitCode, dummy)
-
-        print ''
+    print ''

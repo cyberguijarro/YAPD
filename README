@@ -15,10 +15,26 @@ PATH environment and correct "yapd.bat" with the right path to "yapd.py".
 
 USAGE
 
-Invoking "yapd" with no parameters generates a diff for all "opened for 
-(edit|add|delete)" files, but changelist id's are accepted as well:
+yapd's syntax is:
 
-$ yapd          # Diff for all changelists
-$ yapd default  # Diff for the default changelist
-$ yapd 3 4 28   # Diff for changelists 3, 4 and 28
+$ yapd [-c changelist1 -c changelist2...] [file1 file2...]
+
+File names can use Perforce wildcards as defined for "p4 opened" command.
+
+Examples:
+
+# Diff all opened files
+$ yapd
+
+# Diff only files in changelist 33
+$ yapd -c 33
+
+# Diff only files in folder "src"
+$ yapd src/...
+
+# Diff files in folder src within changelist 33
+$ yapd -c 33 src/...
+
+# Diff only file "main.cpp"
+$ yapd main.cpp
 
